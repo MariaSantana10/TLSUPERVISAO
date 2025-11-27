@@ -13,20 +13,17 @@
         <div class="frame">
             <div class="nav">
                 <ul class="links">
-                    <li class="signin-active"><a class="btn">Existing User</a></li>
-                    <li class="signup-inactive"><a class="btn">New User</a></li>
+                    <li class="signin-active"><a class="btn">Login</a></li>
+                    <li class="signup-inactive"><a class="btn">Cadastro</a></li>
                 </ul>
             </div>
 
             <div ng-app ng-init="checked = false">
                 <form class="form-signin" action="" method="post" name="form">
-                    <label for="fullname">Full name</label>
+                    <label for="fullname">Username</label>
                     <input class="form-styling" type="text" name="username" placeholder="" />
 
-                    <label for="dlno">Driving License Number</label>
-                    <input class="form-styling" type="text" name="username" placeholder="" />
-
-                    <label for="password">Password</label>
+                    <label for="password">Senha</label>
                     <input class="form-styling" type="text" name="password" placeholder="" />
 
                     <input type="checkbox" id="checkbox" />
