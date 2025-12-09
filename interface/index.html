@@ -19,7 +19,7 @@
         
         <div class="ms-auto d-flex gap-2">
           <a href="./real.html" class="btn btn-light btn-sm">Real</a>
-
+          
           <button id="btnLogin" onclick="window.location.href='login.html'">Login</button>
           <button id="btnLogout" onclick="logout()">Logout</button>          
         </div>
@@ -210,393 +210,403 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+      async function login() {
+          const username = document.querySelector("#user").value;
+          const password = document.querySelector("#pass").value;
 
-        async function login() {
-            const username = document.querySelector("#user").value;
-            const password = document.querySelector("#pass").value;
+          const resposta = await fetch("/auth/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ username, password })
+          });
 
-            const resposta = await fetch("/auth/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password })
-            });
+          const dados = await resposta.json();
 
-            const dados = await resposta.json();
+          if (resposta.ok) {
+              localStorage.setItem("token", dados.token);
+              localStorage.setItem("username", dados.username);
+              window.location.href = "/";
+          } else {
+              alert(dados.msg);
+          }
+      }
 
-            if (resposta.ok) {
-                localStorage.setItem("token", dados.token);
-                localStorage.setItem("username", dados.username);
-                window.location.href = "/";
-            } else {
-                alert(dados.msg);
-            }
-        }
-        const token = localStorage.getItem("token");
-        const username = localStorage.getItem("username");
-
-        if (!token) {
-            document.querySelector("#conteudo_monitoramento").style.display = "none";
-            document.querySelector("#msg_login").style.display = "block";
-        }
-        else {
-            document.querySelector("#msg_login").style.display = "none";
-            document.querySelector("#conteudo_monitoramento").style.display = "block";
-
-            document.querySelector("#bem_vindo").innerText =
-                `Bem-vindo(a), ${username}!`;
-        }
-
-        function logout() {
+      function logout() {
           localStorage.removeItem("token");
           localStorage.removeItem("username");
           window.location.reload();
-        }
-        if (!token) {
-            document.querySelector("#btnLogout").style.display = "none";
-            document.querySelector("#btnLogin").style.display = "inline-block";
-        } 
-        else {
-            document.querySelector("#btnLogin").style.display = "none";
-            document.querySelector("#btnLogout").style.display = "inline-block";
-        }
+      }
 
-        window.onload = function () {
+      async function carregarHistorico() {
           const token = localStorage.getItem("token");
+
+          if (!token) return;
+
+          const resposta = await fetch("/api/historico", {
+              method: "GET",
+              headers: { "Authorization": `Bearer ${token}` }
+          });
+
+          const dados = await resposta.json();
+
+          const tabela = document.querySelector("#tabela_dados");
+
+          tabela.innerHTML = ""; 
+          dados.forEach(item => {
+              tabela.innerHTML += `
+                  <tr>
+                      <td>${item.data}</td>
+                      <td>${item.valor}</td>
+                  </tr>
+              `;
+          });
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+          const token = localStorage.getItem("token");
+          const username = localStorage.getItem("username");
 
           const loginBtn = document.getElementById("btnLogin");
           const logoutBtn = document.getElementById("btnLogout");
+          const conteúdo = document.querySelector("#conteudo_monitoramento");
+          const msgLogin = document.querySelector("#msg_login");
+          const bemVindo = document.querySelector("#bem_vindo");
 
           if (!token) {
-              // NÃO LOGADO
+              // Usuário NÃO logado
               if (logoutBtn) logoutBtn.style.display = "none";
-              if (loginBtn) loginBtn.style.display = "block";
-              
-              // Se quiser redirecionar para o login:
-              // window.location.href = "login.html";
+              if (loginBtn) loginBtn.style.display = "inline-block";
+
+              msgLogin.style.display = "block";
+              conteúdo.style.display = "none";
+
           } else {
-              // LOGADO
-              if (logoutBtn) logoutBtn.style.display = "block";
+              // Usuário logado
               if (loginBtn) loginBtn.style.display = "none";
+              if (logoutBtn) logoutBtn.style.display = "inline-block";
 
-              console.log("Usuário logado");
-              carregarDados();
+              msgLogin.style.display = "none";
+              conteúdo.style.display = "block";
+
+              bemVindo.innerHTML = `Bem-vindo(a), ${username}!`;
+
+              carregarHistorico();  
           }
-        };
+      });
 
-        function logout() {
-            localStorage.removeItem("token");
-            window.location.reload();
-        }
-        function volumeReservatorio(x) {
-          const r_menor = 2.14;  
-          const r_maior = 8.43;  
-          const h_tronco = 12.5;  
+      function volumeReservatorio(x) {
+        const r_menor = 2.14;  
+        const r_maior = 8.43;  
+        const h_tronco = 12.5;  
 
-          function raio(x) {
-              return r_menor + (x / h_tronco) * (r_maior - r_menor);
-          }
-
-          if (x >= 0 && x <= 12.5) {
-              let r_x = raio(x);
-              return (Math.PI / 3) * x * (Math.pow(r_menor, 2) + r_menor * r_x + Math.pow(r_x, 2));
-          }
-
-          let V_tronco = (Math.PI / 3) * h_tronco * 
-                          (Math.pow(r_menor, 2) + r_menor * r_maior + Math.pow(r_maior, 2));
-
-          if (x > 12.5 && x <= 27) {
-              let R_cilindro = r_maior;  
-              return V_tronco + Math.PI * Math.pow(R_cilindro, 2) * (x - 12.5);
-          }
-
-          return -1;
+        function raio(x) {
+            return r_menor + (x / h_tronco) * (r_maior - r_menor);
         }
 
-        const MQTT_BROKER = 'ws://localhost:9002';
+        if (x >= 0 && x <= 12.5) {
+            let r_x = raio(x);
+            return (Math.PI / 3) * x * (Math.pow(r_menor, 2) + r_menor * r_x + Math.pow(r_x, 2));
+        }
 
-        const TOPIC_TEMP1 = 'sensor/temp/sala1';
-        const TOPIC_TEMP2 = 'sensor/temp/sala2';
-        const TOPIC_TEMP3 = 'sensor/temp/sala3';
-        const TOPIC_TEMP4 = 'sensor/temp/sala4';
-        const TOPIC_AR1 = 'sensor/presenca/sala1';
-        const TOPIC_AR2 = 'sensor/presenca/sala2';
-        const TOPIC_AR3 = 'sensor/presenca/sala3';
-        const TOPIC_AR4 = 'sensor/presenca/sala4';
-        const TOPIC_LUZ1 = 'sensor/lampada/sala1';
-        const TOPIC_LUZ2 = 'sensor/lampada/sala2';
-        const TOPIC_LUZ3 = 'sensor/lampada/sala3';
-        const TOPIC_LUZ4 = 'sensor/lampada/sala4';
-        const TOPIC_NIVEL = 'sensor/nivel/tanque1';
-        const TOPIC_LOCAL = 'sensor/nivel/local';
+        let V_tronco = (Math.PI / 3) * h_tronco * 
+                        (Math.pow(r_menor, 2) + r_menor * r_maior + Math.pow(r_maior, 2));
 
-        const client = mqtt.connect(MQTT_BROKER);
+        if (x > 12.5 && x <= 27) {
+            let R_cilindro = r_maior;  
+            return V_tronco + Math.PI * Math.pow(R_cilindro, 2) * (x - 12.5);
+        }
 
-        const ultimasLeituras = {
-          [TOPIC_AR1]: null,
-          [TOPIC_AR2]: null,
-          [TOPIC_AR3]: null,
-          [TOPIC_AR4]: null,
-          [TOPIC_LUZ1]: null,
-          [TOPIC_LUZ2]: null,
-          [TOPIC_LUZ3]: null,
-          [TOPIC_LUZ4]: null,
-          [TOPIC_TEMP1]: null,
-          [TOPIC_TEMP2]: null,
-          [TOPIC_TEMP3]: null,
-          [TOPIC_TEMP4]: null,
-          [TOPIC_NIVEL]: null,
-          [TOPIC_LOCAL]: null
-        };
+        return -1;
+      }
 
-        client.on('connect', () => {
-            console.log('Conectado ao broker MQTT via WebSocket');
-            client.subscribe([TOPIC_AR1, TOPIC_AR2, TOPIC_AR3, TOPIC_AR4,
-            TOPIC_TEMP1, TOPIC_TEMP2, TOPIC_TEMP3, TOPIC_TEMP4, 
-            TOPIC_LUZ1, TOPIC_LUZ2, TOPIC_LUZ3, TOPIC_LUZ4, TOPIC_NIVEL, TOPIC_LOCAL]);
-        });
+      const MQTT_BROKER = 'ws://localhost:9002';
 
-        setInterval(() => {
-          const agora = Date.now();
+      const TOPIC_TEMP1 = 'sensor/temp/sala1';
+      const TOPIC_TEMP2 = 'sensor/temp/sala2';
+      const TOPIC_TEMP3 = 'sensor/temp/sala3';
+      const TOPIC_TEMP4 = 'sensor/temp/sala4';
+      const TOPIC_AR1 = 'sensor/presenca/sala1';
+      const TOPIC_AR2 = 'sensor/presenca/sala2';
+      const TOPIC_AR3 = 'sensor/presenca/sala3';
+      const TOPIC_AR4 = 'sensor/presenca/sala4';
+      const TOPIC_LUZ1 = 'sensor/lampada/sala1';
+      const TOPIC_LUZ2 = 'sensor/lampada/sala2';
+      const TOPIC_LUZ3 = 'sensor/lampada/sala3';
+      const TOPIC_LUZ4 = 'sensor/lampada/sala4';
+      const TOPIC_NIVEL = 'sensor/nivel/tanque1';
+      const TOPIC_LOCAL = 'sensor/nivel/local';
 
-          for (const [topic, ultima] of Object.entries(ultimasLeituras)) {
-            if (!ultima) continue;
-            
-            const segundos = Math.floor((agora - ultima)/1000);
-            let texto = "";
+      const client = mqtt.connect(MQTT_BROKER);
 
-            if (segundos < 60){
-              texto = `há ${segundos} seg`;
-            } else if (segundos < 3600) {
-              const minutos = Math.floor(segundos/60);
-              texto = `há ${minutos} min`;
-            } else {
-              const horas = Math.floor(segundos/3600);
-              texto = `há ${horas} h`;
-            }
+      const ultimasLeituras = {
+        [TOPIC_AR1]: null,
+        [TOPIC_AR2]: null,
+        [TOPIC_AR3]: null,
+        [TOPIC_AR4]: null,
+        [TOPIC_LUZ1]: null,
+        [TOPIC_LUZ2]: null,
+        [TOPIC_LUZ3]: null,
+        [TOPIC_LUZ4]: null,
+        [TOPIC_TEMP1]: null,
+        [TOPIC_TEMP2]: null,
+        [TOPIC_TEMP3]: null,
+        [TOPIC_TEMP4]: null,
+        [TOPIC_NIVEL]: null,
+        [TOPIC_LOCAL]: null
+      };
 
-            if (topic === TOPIC_TEMP1) {
-              document.getElementById("ua1").textContent= `Última atualização: ${texto}`;
-            }
-            else if (topic === TOPIC_TEMP2) {
-              document.getElementById("ua2").textContent= `Última atualização: ${texto}`;
-            }
-            else if (topic === TOPIC_TEMP3) {
-              document.getElementById("ua3").textContent= `Última atualização: ${texto}`;
-            }
-            else if (topic === TOPIC_TEMP4) {
-              document.getElementById("ua4").textContent= `Última atualização: ${texto}`;
-            }
-            else if (topic === TOPIC_AR1) {
-              document.getElementById("ua1").textContent= `Última atualização: ${texto}`;
-            }
-            else if (topic === TOPIC_AR2) {
-              document.getElementById("ua2").textContent= `Última atualização: ${texto}`;
-            }
-            else if (topic === TOPIC_AR3) {
-              document.getElementById("ua3").textContent= `Última atualização: ${texto}`;
-            }
-            else if (topic === TOPIC_AR4) {
-              document.getElementById("ua4").textContent= `Última atualização: ${texto}`;
-            }
-            else if (topic === TOPIC_LUZ1) {
-              document.getElementById("ua1").textContent= `Última atualização: ${texto}`;
-            }
-            else if (topic === TOPIC_LUZ2) {
-              document.getElementById("ua2").textContent= `Última atualização: ${texto}`;
-            }
-            else if (topic === TOPIC_LUZ3) {
-              document.getElementById("ua3").textContent= `Última atualização: ${texto}`;
-            }
-            else if (topic === TOPIC_LUZ4) {
-              document.getElementById("ua4").textContent= `Última atualização: ${texto}`;
-            }
-            else if (topic === TOPIC_NIVEL){
-              document.getElementById("nivel").textContent = `Última leitura: ${texto}`;
-            }
-            else if (topic === TOPIC_LOCAL){
-              document.getElementById("nivel").textContent = `Última leitura: ${texto}`;
-            }
+      client.on('connect', () => {
+          console.log('Conectado ao broker MQTT via WebSocket');
+          client.subscribe([TOPIC_AR1, TOPIC_AR2, TOPIC_AR3, TOPIC_AR4,
+          TOPIC_TEMP1, TOPIC_TEMP2, TOPIC_TEMP3, TOPIC_TEMP4, 
+          TOPIC_LUZ1, TOPIC_LUZ2, TOPIC_LUZ3, TOPIC_LUZ4, TOPIC_NIVEL, TOPIC_LOCAL]);
+      });
+
+      setInterval(() => {
+        const agora = Date.now();
+
+        for (const [topic, ultima] of Object.entries(ultimasLeituras)) {
+          if (!ultima) continue;
+          
+          const segundos = Math.floor((agora - ultima)/1000);
+          let texto = "";
+
+          if (segundos < 60){
+            texto = `há ${segundos} seg`;
+          } else if (segundos < 3600) {
+            const minutos = Math.floor(segundos/60);
+            texto = `há ${minutos} min`;
+          } else {
+            const horas = Math.floor(segundos/3600);
+            texto = `há ${horas} h`;
           }
-        }, 1000);
-
-        client.on('message', (topic, message) => {
-          let data;
-
-          try {
-            data = JSON.parse(message.toString());
-          } catch (e) {
-            console.error("Erro ao interpretar JSON:", e);
-            return;
-          }
-
-          const leitura = data.leitura;
-          ultimasLeituras[topic] = Date.now();
 
           if (topic === TOPIC_TEMP1) {
-            const vol = parseFloat(leitura);
-            document.getElementById('temp1').innerHTML =
-            `<i class="fas fa-thermometer-half me-2"></i><strong>Temperatura:</strong> ${vol.toFixed(1)} °C`;
+            document.getElementById("ua1").textContent= `Última atualização: ${texto}`;
           }
           else if (topic === TOPIC_TEMP2) {
-            const vol = parseFloat(leitura);
-            document.getElementById('temp2').innerHTML =
-            `<i class="fas fa-thermometer-half me-2"></i><strong>Temperatura:</strong> ${vol.toFixed(1)} °C`;
+            document.getElementById("ua2").textContent= `Última atualização: ${texto}`;
           }
           else if (topic === TOPIC_TEMP3) {
-            const vol = parseFloat(leitura);
-            document.getElementById('temp3').innerHTML =
-            `<i class="fas fa-thermometer-half me-2"></i><strong>Temperatura:</strong> ${vol.toFixed(1)} °C`;
+            document.getElementById("ua3").textContent= `Última atualização: ${texto}`;
           }
           else if (topic === TOPIC_TEMP4) {
-            const vol = parseFloat(leitura);
-            document.getElementById('temp4').innerHTML =
-            `<i class="fas fa-thermometer-half me-2"></i><strong>Temperatura:</strong> ${vol.toFixed(1)} °C`;
+            document.getElementById("ua4").textContent= `Última atualização: ${texto}`;
           }
           else if (topic === TOPIC_AR1) {
-            const estadoAr = leitura === true || leitura === "true";
-            const textoAr = estadoAr ? "Ligado" : "Desligado";
-            const corAr = estadoAr ? "text-success" : "text-danger";
-            document.getElementById('ar1').innerHTML =
-              `<i class="fas fa-fan me-2"></i><strong>Ar-condicionado:</strong> <span class="${corAr}">${textoAr}</span>`;
+            document.getElementById("ua1").textContent= `Última atualização: ${texto}`;
           }
           else if (topic === TOPIC_AR2) {
-            const estadoAr = leitura === true || leitura === "true";
-            const textoAr = estadoAr ? "Ligado" : "Desligado";
-            const corAr = estadoAr ? "text-success" : "text-danger";
-            document.getElementById('ar2').innerHTML =
-              `<i class="fas fa-fan me-2"></i><strong>Ar-condicionado:</strong> <span class="${corAr}">${textoAr}</span>`;
+            document.getElementById("ua2").textContent= `Última atualização: ${texto}`;
           }
           else if (topic === TOPIC_AR3) {
-            const estadoAr = leitura === true || leitura === "true";
-            const textoAr = estadoAr ? "Ligado" : "Desligado";
-            const corAr = estadoAr ? "text-success" : "text-danger";
-            document.getElementById('ar3').innerHTML =
-              `<i class="fas fa-fan me-2"></i><strong>Ar-condicionado:</strong> <span class="${corAr}">${textoAr}</span>`;
+            document.getElementById("ua3").textContent= `Última atualização: ${texto}`;
           }
           else if (topic === TOPIC_AR4) {
-            const estadoAr = leitura === true || leitura === "true";
-            const textoAr = estadoAr ? "Ligado" : "Desligado";
-            const corAr = estadoAr ? "text-success" : "text-danger";
-            document.getElementById('ar4').innerHTML =
-              `<i class="fas fa-fan me-2"></i><strong>Ar-condicionado:</strong> <span class="${corAr}">${textoAr}</span>`;
+            document.getElementById("ua4").textContent= `Última atualização: ${texto}`;
           }
           else if (topic === TOPIC_LUZ1) {
-            const luz = leitura === true || leitura === "true";
-            const textoLuz = luz ? "Ligadas" : "Desligadas";
-            const corLuz = luz ? "text-success" : "text-danger";
-            document.getElementById('luz1').innerHTML =
-              `<i class="fas fa-lightbulb me-2"></i><strong>Luzes:</strong> <span class="${corLuz}">${textoLuz}</span>`;
+            document.getElementById("ua1").textContent= `Última atualização: ${texto}`;
           }
           else if (topic === TOPIC_LUZ2) {
-            const luz = leitura === true || leitura === "true";
-            const textoLuz = luz ? "Ligadas" : "Desligadas";
-            const corLuz = luz ? "text-success" : "text-danger";
-            document.getElementById('luz2').innerHTML =
-              `<i class="fas fa-lightbulb me-2"></i><strong>Luzes:</strong> <span class="${corLuz}">${textoLuz}</span>`;
+            document.getElementById("ua2").textContent= `Última atualização: ${texto}`;
           }
           else if (topic === TOPIC_LUZ3) {
-            const luz = leitura === true || leitura === "true";
-            const textoLuz = luz ? "Ligadas" : "Desligadas";
-            const corLuz = luz ? "text-success" : "text-danger";
-            document.getElementById('luz3').innerHTML =
-              `<i class="fas fa-lightbulb me-2"></i><strong>Luzes:</strong> <span class="${corLuz}">${textoLuz}</span>`;
+            document.getElementById("ua3").textContent= `Última atualização: ${texto}`;
           }
           else if (topic === TOPIC_LUZ4) {
-            const luz = leitura === true || leitura === "true";
-            const textoLuz = luz ? "Ligadas" : "Desligadas";
-            const corLuz = luz ? "text-success" : "text-danger";
-            document.getElementById('luz4').innerHTML =
-              `<i class="fas fa-lightbulb me-2"></i><strong>Luzes:</strong> <span class="${corLuz}">${textoLuz}</span>`;
-          }
-          else if (topic === TOPIC_LOCAL) {
-            const carro = parseFloat(leitura);
-            const leituraAjustada = (carro - 27.0) * -1;
-            const vol = volumeReservatorio(leituraAjustada);
-            const val = vol.toFixed(3);
-            atualizarGraficoLocal(val);
+            document.getElementById("ua4").textContent= `Última atualização: ${texto}`;
           }
           else if (topic === TOPIC_NIVEL){
-            const vol = parseFloat(leitura);
-            atualizarGraficoTemp(vol);
+            document.getElementById("nivel").textContent = `Última leitura: ${texto}`;
           }
-        });
-
-        const ctxTemp = document.getElementById('myChart').getContext('2d');
-        const dataTemp = { labels: [], datasets: [{ label: 'Nível (cm)', data: [], borderColor: 'rgb(2115, 99, 132)' }] };
-        const chartTemp = new Chart(ctxTemp, { type: 'line', data: dataTemp, options: { scales: { y: { min: 10, max: 100 }}}});
-
-        function atualizarGraficoTemp(valor) {
-          if (dataTemp.labels.length > 100) {
-            dataTemp.labels.shift();
-            dataTemp.datasets[0].data.shift();
+          else if (topic === TOPIC_LOCAL){
+            document.getElementById("nivel").textContent = `Última leitura: ${texto}`;
           }
-          dataTemp.labels.push(new Date().toLocaleTimeString());
-          dataTemp.datasets[0].data.push(valor);
-          chartTemp.update();
+        }
+      }, 1000);
+
+      client.on('message', (topic, message) => {
+        let data;
+
+        try {
+          data = JSON.parse(message.toString());
+        } catch (e) {
+          console.error("Erro ao interpretar JSON:", e);
+          return;
         }
 
-        const ctxLocal = document.getElementById('LocalChart').getContext('2d');
-        const dataLocal = { labels: [], datasets: [{ label: 'Local', data: [], borderColor: 'rgb(54, 162, 235)' }] };
-        const chartLocal = new Chart(ctxLocal, { type: 'line', data: dataLocal, options: { scales: { y: { min: 0, max: 4500 }}}});
+        const leitura = data.leitura;
+        ultimasLeituras[topic] = Date.now();
 
-        function atualizarGraficoLocal(valor) {
-          if (dataLocal.labels.length > 100) {
-            dataLocal.labels.shift();
-            dataLocal.datasets[0].data.shift();
+        if (topic === TOPIC_TEMP1) {
+          const vol = parseFloat(leitura);
+          document.getElementById('temp1').innerHTML =
+          `<i class="fas fa-thermometer-half me-2"></i><strong>Temperatura:</strong> ${vol.toFixed(1)} °C`;
+        }
+        else if (topic === TOPIC_TEMP2) {
+          const vol = parseFloat(leitura);
+          document.getElementById('temp2').innerHTML =
+          `<i class="fas fa-thermometer-half me-2"></i><strong>Temperatura:</strong> ${vol.toFixed(1)} °C`;
+        }
+        else if (topic === TOPIC_TEMP3) {
+          const vol = parseFloat(leitura);
+          document.getElementById('temp3').innerHTML =
+          `<i class="fas fa-thermometer-half me-2"></i><strong>Temperatura:</strong> ${vol.toFixed(1)} °C`;
+        }
+        else if (topic === TOPIC_TEMP4) {
+          const vol = parseFloat(leitura);
+          document.getElementById('temp4').innerHTML =
+          `<i class="fas fa-thermometer-half me-2"></i><strong>Temperatura:</strong> ${vol.toFixed(1)} °C`;
+        }
+        else if (topic === TOPIC_AR1) {
+          const estadoAr = leitura === true || leitura === "true";
+          const textoAr = estadoAr ? "Ligado" : "Desligado";
+          const corAr = estadoAr ? "text-success" : "text-danger";
+          document.getElementById('ar1').innerHTML =
+            `<i class="fas fa-fan me-2"></i><strong>Ar-condicionado:</strong> <span class="${corAr}">${textoAr}</span>`;
+        }
+        else if (topic === TOPIC_AR2) {
+          const estadoAr = leitura === true || leitura === "true";
+          const textoAr = estadoAr ? "Ligado" : "Desligado";
+          const corAr = estadoAr ? "text-success" : "text-danger";
+          document.getElementById('ar2').innerHTML =
+            `<i class="fas fa-fan me-2"></i><strong>Ar-condicionado:</strong> <span class="${corAr}">${textoAr}</span>`;
+        }
+        else if (topic === TOPIC_AR3) {
+          const estadoAr = leitura === true || leitura === "true";
+          const textoAr = estadoAr ? "Ligado" : "Desligado";
+          const corAr = estadoAr ? "text-success" : "text-danger";
+          document.getElementById('ar3').innerHTML =
+            `<i class="fas fa-fan me-2"></i><strong>Ar-condicionado:</strong> <span class="${corAr}">${textoAr}</span>`;
+        }
+        else if (topic === TOPIC_AR4) {
+          const estadoAr = leitura === true || leitura === "true";
+          const textoAr = estadoAr ? "Ligado" : "Desligado";
+          const corAr = estadoAr ? "text-success" : "text-danger";
+          document.getElementById('ar4').innerHTML =
+            `<i class="fas fa-fan me-2"></i><strong>Ar-condicionado:</strong> <span class="${corAr}">${textoAr}</span>`;
+        }
+        else if (topic === TOPIC_LUZ1) {
+          const luz = leitura === true || leitura === "true";
+          const textoLuz = luz ? "Ligadas" : "Desligadas";
+          const corLuz = luz ? "text-success" : "text-danger";
+          document.getElementById('luz1').innerHTML =
+            `<i class="fas fa-lightbulb me-2"></i><strong>Luzes:</strong> <span class="${corLuz}">${textoLuz}</span>`;
+        }
+        else if (topic === TOPIC_LUZ2) {
+          const luz = leitura === true || leitura === "true";
+          const textoLuz = luz ? "Ligadas" : "Desligadas";
+          const corLuz = luz ? "text-success" : "text-danger";
+          document.getElementById('luz2').innerHTML =
+            `<i class="fas fa-lightbulb me-2"></i><strong>Luzes:</strong> <span class="${corLuz}">${textoLuz}</span>`;
+        }
+        else if (topic === TOPIC_LUZ3) {
+          const luz = leitura === true || leitura === "true";
+          const textoLuz = luz ? "Ligadas" : "Desligadas";
+          const corLuz = luz ? "text-success" : "text-danger";
+          document.getElementById('luz3').innerHTML =
+            `<i class="fas fa-lightbulb me-2"></i><strong>Luzes:</strong> <span class="${corLuz}">${textoLuz}</span>`;
+        }
+        else if (topic === TOPIC_LUZ4) {
+          const luz = leitura === true || leitura === "true";
+          const textoLuz = luz ? "Ligadas" : "Desligadas";
+          const corLuz = luz ? "text-success" : "text-danger";
+          document.getElementById('luz4').innerHTML =
+            `<i class="fas fa-lightbulb me-2"></i><strong>Luzes:</strong> <span class="${corLuz}">${textoLuz}</span>`;
+        }
+        else if (topic === TOPIC_LOCAL) {
+          const carro = parseFloat(leitura);
+          const leituraAjustada = (carro - 27.0) * -1;
+          const vol = volumeReservatorio(leituraAjustada);
+          const val = vol.toFixed(3);
+          atualizarGraficoLocal(val);
+        }
+        else if (topic === TOPIC_NIVEL){
+          const vol = parseFloat(leitura);
+          atualizarGraficoTemp(vol);
+        }
+      });
+
+      const ctxTemp = document.getElementById('myChart').getContext('2d');
+      const dataTemp = { labels: [], datasets: [{ label: 'Nível (cm)', data: [], borderColor: 'rgb(2115, 99, 132)' }] };
+      const chartTemp = new Chart(ctxTemp, { type: 'line', data: dataTemp, options: { scales: { y: { min: 10, max: 100 }}}});
+
+      function atualizarGraficoTemp(valor) {
+        if (dataTemp.labels.length > 100) {
+          dataTemp.labels.shift();
+          dataTemp.datasets[0].data.shift();
+        }
+        dataTemp.labels.push(new Date().toLocaleTimeString());
+        dataTemp.datasets[0].data.push(valor);
+        chartTemp.update();
+      }
+
+      const ctxLocal = document.getElementById('LocalChart').getContext('2d');
+      const dataLocal = { labels: [], datasets: [{ label: 'Local', data: [], borderColor: 'rgb(54, 162, 235)' }] };
+      const chartLocal = new Chart(ctxLocal, { type: 'line', data: dataLocal, options: { scales: { y: { min: 0, max: 4500 }}}});
+
+      function atualizarGraficoLocal(valor) {
+        if (dataLocal.labels.length > 100) {
+          dataLocal.labels.shift();
+          dataLocal.datasets[0].data.shift();
+        }
+        dataLocal.labels.push(new Date().toLocaleTimeString());
+        dataLocal.datasets[0].data.push(valor);
+        chartLocal.update();
+      }
+
+      const Hctx = document.getElementById('HChart').getContext('2d');
+      const Hdata = { labels: [], datasets: [{ label: 'Histórico Sensor', data: [], borderColor: 'blue', tension: 0.1 }] };
+      const Hconfig = { type: 'line', data: Hdata, options: { scales: { y: { min: 0, max: 100}}}};
+      const HChart = new Chart(Hctx, Hconfig);
+
+      async function carregarHistorico() {
+          const inicio = document.getElementById('dataInicio').value;
+          const fim = document.getElementById('dataFim').value;
+          
+          if (!inicio || !fim || new Date(inicio) > new Date(fim)) { 
+            alert("Por favor, insira datas válidas."); return; }
+
+          const requestData = {collection_name: `nivel1`, sensor_id: 41, start_datetime: `${inicio}T07:00`, end_datetime: `${fim}T12:00` };
+
+          try {
+            const token = localStorage.getItem("token");
+
+            const response = await fetch('http://localhost/api/historico', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify(requestData)
+            });
+              
+              if (!response.ok) throw new Error('Erro ao buscar os dados do histórico');
+
+              const histData = await response.json();
+
+              if (histData.length === 0) {
+                alert('Nenhum dado encontrado para o período selecionado.');
+                return;
+              }
+              Hdata.labels = [];
+              Hdata.datasets[0].data = [];
+
+              histData.forEach(item => {
+                  const timestamp = new Date(item.timestamp).toLocaleString();
+                  const valor = item.valor;
+                  Hdata.labels.push(timestamp);
+                  Hdata.datasets[0].data.push(valor);
+              });
+
+              HChart.update();
+
+          } catch (error) {
+              console.error(error);
+              alert('Erro ao carregar os dados do histórico.');
           }
-          dataLocal.labels.push(new Date().toLocaleTimeString());
-          dataLocal.datasets[0].data.push(valor);
-          chartLocal.update();
-        }
-
-        const Hctx = document.getElementById('HChart').getContext('2d');
-        const Hdata = { labels: [], datasets: [{ label: 'Histórico Sensor', data: [], borderColor: 'blue', tension: 0.1 }] };
-        const Hconfig = { type: 'line', data: Hdata, options: { scales: { y: { min: 0, max: 100}}}};
-        const HChart = new Chart(Hctx, Hconfig);
-
-        async function carregarHistorico() {
-            const inicio = document.getElementById('dataInicio').value;
-            const fim = document.getElementById('dataFim').value;
-            
-            if (!inicio || !fim || new Date(inicio) > new Date(fim)) { 
-              alert("Por favor, insira datas válidas."); return; }
-
-            const requestData = {collection_name: `nivel1`, sensor_id: 41, start_datetime: `${inicio}T07:00`, end_datetime: `${fim}T12:00` };
-
-            try {
-                const response = await fetch('http://localhost/api/historico', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'},
-                    body: JSON.stringify(requestData)
-                });
-                
-                if (!response.ok) throw new Error('Erro ao buscar os dados do histórico');
-
-                const histData = await response.json();
-
-                if (histData.length === 0) {
-                  alert('Nenhum dado encontrado para o período selecionado.');
-                  return;
-                }
-                Hdata.labels = [];
-                Hdata.datasets[0].data = [];
-
-                histData.forEach(item => {
-                    const timestamp = new Date(item.timestamp).toLocaleString();
-                    const valor = item.valor;
-                    Hdata.labels.push(timestamp);
-                    Hdata.datasets[0].data.push(valor);
-                });
-
-                HChart.update();
-
-            } catch (error) {
-                console.error(error);
-                alert('Erro ao carregar os dados do histórico.');
-            }
-        }
-
-</script>
+      }   
+    </script>
   </body>
 </html>
