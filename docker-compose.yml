@@ -1,0 +1,370 @@
+
+services:
+
+  minhocao_interface:
+    build: ./interface
+    container_name: minhocao_interface
+    ports:
+      - "80:80"
+    depends_on:
+      - mqtt-broker
+      - sensor_temp_1
+      - sensor_temp_2
+      - sensor_temp_3
+      - sensor_temp_4
+      - sensor_ar_1
+      - sensor_ar_2
+      - sensor_ar_3
+      - sensor_ar_4
+      - sensor_luz_1
+      - sensor_luz_2
+      - sensor_luz_3
+      - sensor_luz_4
+      - sensor_nivels
+      - sensor_nivell
+      - sensor_nivelr
+    networks:
+      - super-network
+
+  mqtt-broker:
+    image: eclipse-mosquitto:2.0.18 
+    container_name: super-broker
+    ports:
+      - "1884:1883" 
+      - "9002:9001"
+    volumes:
+      - ./servidor-sensores/mosquitto/config:/mosquitto/config
+    command: mosquitto -c /mosquitto/config/mosquitto.conf 
+    restart: always
+    networks:
+      - super-network
+      
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    ports: 
+        - "27017:27017"
+    environment:
+        MONGO_INITDB_ROOT_USERNAME: admin
+        MONGO_INITDB_ROOT_PASSWORD: admin
+    volumes:
+        - mongo-data:/data/db
+    networks:
+      - super-network
+
+  armazenar:
+    build:
+        context: ./data-logger
+        dockerfile: Dockerfile
+    container_name: armazenar
+    depends_on:
+        - sensor_nivels
+        - sensor_ar_1
+        - sensor_temp_1
+        - sensor_luz_1
+        - mqtt-broker
+        - mongo
+    environment:
+        MQTT_BROKER_HOST: mqtt-broker
+        MQTT_BROKER_PORT: 1883
+    command: python main.py
+    networks:
+        - super-network
+    
+  armazenareal:
+    build:
+        context: ./data-logger
+        dockerfile: Dockerfile.real
+    container_name: armazenareal
+    depends_on:
+        - sensor_nivelr
+        - mongo
+    environment:
+        MQTT_BROKER_HOST: 10.57.0.10
+        MQTT_BROKER_PORT: 1883
+    command: python mainReal.py
+    networks:
+        - super-network
+
+  consulta_banco:
+    build:
+      context: ./consulta_banco
+      dockerfile: Dockerfile
+    container_name: consulta_banco
+    depends_on:
+      - minhocao_interface
+      - mqtt-broker
+      - mongo
+    environment:
+      MQTT_BROKER_HOST: mqtt-broker
+      MQTT_BROKER_PORT: 1883
+    command: python consultaFlask.py
+    ports:
+      - "5000:5000"
+    networks:
+        - super-network
+
+  consulta_bancor:
+    build:
+      context: ./consulta_banco
+      dockerfile: Dockerfile.real
+    container_name: consulta_bancor
+    depends_on:
+      - mqtt-broker
+      - mongo
+    environment:
+      MQTT_BROKER_HOST: mqtt-broker
+      MQTT_BROKER_PORT: 1883
+    command: python consultaReal.py
+    ports:
+      - "5002:5002"
+    networks:
+        - super-network
+
+  sensor_base_temp: &sensor_base_temp
+    build:
+      context: ./servidor-sensores
+      dockerfile: Dockerfile.servidor-temp
+    command: python servidor_temperatura.py
+    depends_on:
+      - mqtt-broker
+    environment:
+      MQTT_BROKER_HOST: mqtt-broker
+      MQTT_BROKER_PORT: 1883
+    networks:
+      - super-network
+  
+  sensor_base_ar: &sensor_base_ar
+    build:
+      context: ./servidor-sensores
+      dockerfile: Dockerfile.servidor-ar
+    command: python servidor_ar.py
+    depends_on:
+      - mqtt-broker
+    environment:
+      MQTT_BROKER_HOST: mqtt-broker
+      MQTT_BROKER_PORT: 1883
+    networks:
+      - super-network
+
+  sensor_base_luz: &sensor_base_luz
+    build:
+      context: ./servidor-sensores
+      dockerfile: Dockerfile.servidor-luz
+    command: python servidor_lampada.py
+    depends_on:
+      - mqtt-broker
+    environment:
+      MQTT_BROKER_HOST: mqtt-broker
+      MQTT_BROKER_PORT: 1883
+    networks:
+      - super-network
+
+  sensor_nivels:
+    build:
+      context: ./servidor-sensores
+      dockerfile: Dockerfile.servidor-nivel
+    command: python servidor_nivel.py
+    ports:
+      - "5401:5000"
+    depends_on:
+      - mqtt-broker
+    environment:
+      MQTT_BROKER_HOST: mqtt-broker
+      MQTT_BROKER_PORT: 1883
+      SENSOR_ID: 41
+      LOCALIZACAO: "Tanque 1"
+      MQTT_TOPIC: "sensor/nivel/tanque1"
+    networks:
+      - super-network
+
+  sensor_nivell:
+    build:
+      context: ./servidor-sensores
+      dockerfile: Dockerfile.servidor-local
+    container_name: sensor_nivell
+    command: python flask-local.py
+    ports:
+      - "5501:5000"
+    devices:
+      - "/dev/ttyUSB0:/dev/ttyUSB0"
+    privileged: true
+    depends_on:
+      - mqtt-broker
+    environment:
+      MQTT_BROKER_HOST: mqtt-broker
+      MQTT_BROKER_PORT: 1883
+      SENSOR_ID: 51
+      LOCALIZACAO: "Local 1"
+      MQTT_TOPIC: "sensor/nivel/local"
+    networks:
+      - super-network
+
+  sensor_nivelr:
+    build:
+      context: ./servidor-sensores
+      dockerfile: Dockerfile.servidor-real
+    container_name: sensor_nivelr
+    command: python servidor_real.py
+    environment:
+      MQTT_BROKER_HOST: 10.57.0.10
+      MQTT_BROKER_PORT: 1883
+      MQTT_PASS: senha123
+      MQTT_USER: tht
+      LOCALIZACAO: "Reservatório IFRN 1"
+      MQTT_TOPIC: "/medidor_nivel/#"
+    ports:
+      - "5001:5001"
+    networks:
+      - super-network
+
+  sensor_luz_1:
+    <<: *sensor_base_luz
+    container_name: sensor_luz_1
+    ports:
+        - "5301:5000"
+    depends_on:
+        - mqtt-broker
+    environment:
+        SENSOR_ID: 31
+        LOCALIZACAO: "Sala 1"
+        MQTT_TOPIC: "sensor/lampada/sala1"
+
+  sensor_luz_2:
+    <<: *sensor_base_luz
+    container_name: sensor_luz_2
+    ports:
+        - "5302:5000"
+    depends_on:
+        - mqtt-broker
+    environment:
+        SENSOR_ID: 32
+        LOCALIZACAO: "Sala 2"
+        MQTT_TOPIC: "sensor/lampada/sala2"
+
+  sensor_luz_3:
+    <<: *sensor_base_luz
+    container_name: sensor_luz_3
+    ports:
+        - "5303:5000"
+    depends_on:
+        - mqtt-broker
+    environment:
+        SENSOR_ID: 33
+        LOCALIZACAO: "Sala 3"
+        MQTT_TOPIC: "sensor/lampada/sala3"
+
+  sensor_luz_4:
+    <<: *sensor_base_luz
+    container_name: sensor_luz_4
+    ports:
+        - "5304:5000"
+    depends_on:
+        - mqtt-broker
+    environment:
+        SENSOR_ID: 34
+        LOCALIZACAO: "Sala 4"
+        MQTT_TOPIC: "sensor/lampada/sala4"
+
+  sensor_temp_1:
+    <<: *sensor_base_temp
+    container_name: sensor_temp_1
+    ports:
+        - "5101:5000"
+    depends_on:
+        - mqtt-broker
+    environment:
+        SENSOR_ID: 11
+        LOCALIZACAO: "Sala 1"
+        MQTT_TOPIC: "sensor/temp/sala1"
+
+  sensor_temp_2:
+    <<: *sensor_base_temp
+    container_name: sensor_temp_2
+    ports:
+        - "5102:5000"
+    depends_on:
+        - mqtt-broker
+    environment:
+        SENSOR_ID: 12
+        LOCALIZACAO: "Sala 2"
+        MQTT_TOPIC: "sensor/temp/sala2"
+
+  sensor_temp_3:
+    <<: *sensor_base_temp
+    container_name: sensor_temp_3
+    ports:
+        - "5103:5000"
+    depends_on:
+        - mqtt-broker
+    environment:
+        SENSOR_ID: 13
+        LOCALIZACAO: "Sala 3"
+        MQTT_TOPIC: "sensor/temp/sala3"
+
+  sensor_temp_4:
+    <<: *sensor_base_temp
+    container_name: sensor_temp_4
+    ports:
+        - "5104:5000"
+    depends_on:
+        - mqtt-broker
+    environment:
+        SENSOR_ID: 14
+        LOCALIZACAO: "Sala 4"
+        MQTT_TOPIC: "sensor/temp/sala4"
+
+  sensor_ar_1:
+    <<: *sensor_base_ar
+    container_name: sensor_ar_1
+    ports:
+        - "5201:5000"
+    depends_on:
+        - mqtt-broker
+    environment:
+        SENSOR_ID: 21
+        LOCALIZACAO: "Sala 1"
+        MQTT_TOPIC: "sensor/presenca/sala1"
+  
+  sensor_ar_2:
+    <<: *sensor_base_ar
+    container_name: sensor_ar_2
+    ports:
+        - "5202:5000"
+    depends_on:
+        - mqtt-broker
+    environment:
+        SENSOR_ID: 22
+        LOCALIZACAO: "Sala 2"
+        MQTT_TOPIC: "sensor/presenca/sala2"
+  
+  sensor_ar_3:
+    <<: *sensor_base_ar
+    container_name: sensor_ar_3
+    ports:
+        - "5203:5000"
+    depends_on:
+        - mqtt-broker
+    environment:
+        SENSOR_ID: 23
+        LOCALIZACAO: "Sala 3"
+        MQTT_TOPIC: "sensor/presenca/sala3"
+  
+  sensor_ar_4:
+    <<: *sensor_base_ar
+    container_name: sensor_ar_4
+    ports:
+        - "5204:5000"
+    depends_on:
+        - mqtt-broker
+    environment:
+        SENSOR_ID: 24
+        LOCALIZACAO: "Sala 4"
+        MQTT_TOPIC: "sensor/presenca/sala4"
+        
+volumes:
+  mongo-data:
+
+networks:
+  super-network:
+    driver: bridge  

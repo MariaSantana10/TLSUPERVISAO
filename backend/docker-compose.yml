@@ -1,0 +1,17 @@
+
+
+services:
+  mongo:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"  # Mapeia a porta 27017 do container para a porta 27017 do host
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    volumes:
+      - mongo-data:/data/db  # Persiste os dados do MongoDB entre as reinicializações do container
+
+volumes:
+  mongo-data:  # Define o volume para persistência
+    driver: local

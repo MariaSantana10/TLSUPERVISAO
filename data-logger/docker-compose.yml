@@ -1,0 +1,7 @@
+
+services:
+  sensor_data_collector:
+    build: .
+    container_name: data_logger_nivel
+    environment:
+      - MONGO_URI=mongodb://admin:admin@<mongo_container_host>:27017/

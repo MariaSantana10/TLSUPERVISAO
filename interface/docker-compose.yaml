@@ -1,0 +1,16 @@
+#version: '3.8'
+
+services:
+
+  minhoca_interface:
+    build: .
+    container_name: minhoca_interface
+    ports:
+      - "8080:8080"
+
+    networks:
+      - super-network
+
+networks:
+  super-network:
+    driver: bridge

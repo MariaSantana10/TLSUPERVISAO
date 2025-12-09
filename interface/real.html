@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servidor Real</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <!-- CSS custom -->
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="container">
+        <a class="navbar-brand" href="#"><i class="fas fa-house me-2"></i>Supervisão de Ambientes</a>
+
+        <a href="index.html" class="btn btn-light btn-sm">
+          <i class="fas fa-arrow-left me-2"></i>Voltar
+        </a>
+      </div>
+    </nav>
+
+    <div class="container my-4">
+      <div class="bg-primary text-white rounded p-5 mb-4">
+        <h1 class="display-4"><i class="fas fa-house me-3"></i>Bem-vindo ao SUPER</h1>
+        <p class="lead">Sistema de Monitoramento de Ambientes</p>
+      </div>
+    </div>
+
+  <main>
+      <div class="container my-4">
+        <h1 class="mt-4">MONITORAMENTO CAIXA D'ÁGUA IFRN-CM</h1>
+        <ol class="breadcrumb mb-4"><li class="breadcrumb-item active"></li></ol>
+    
+        <section id="real" class="mb-5">
+          <h2 class="small-title">Variação Nível </h2>
+            <div class="card shadow-sm">
+              <div class="card-body">
+                <div class="row gy-2">
+                  <div class="col-md-12">
+                    <p>Reservatorio 1</p>
+                    <canvas id="reChart" width="400" height="100"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="card-footer text-muted" id="real">
+                Última leitura: <strong>calculando...</strong>
+              </div>
+            </div>
+          </section>
+
+          <section id="historico" class="mb-5">
+            <h2 class="small-title">Historico do Nível</h2>
+            <div class="card shadow-sm">
+              <div class="card-body">
+                <div class="row g-3 align-items-end">
+                  <div class="col-md-4">
+                      <label for="dataInicio" class="form-label">Início:</label>
+                      <input type="date" id="dataInicio" class="form-control">
+                  </div>
+                  <div class="col-md-4">
+                      <label for="dataFim" class="form-label">Fim:</label>
+                      <input type="date" id="dataFim" class="form-control">
+                  </div>
+                  <div class="col-md-4">
+                    <button onclick="carregarHistorico()" class="btn btn-primary w-100">Carregar Historico</button>
+                  </div>
+              </div>
+    
+              <div class="mt-4">
+                  <canvas id="HChart" height="100"></canvas>
+              </div>
+            </div>
+          </section>
+        </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+      const API_REALTIME = "/api/sensor_real";  
+      const API_HIST = "/api/historicor";
+
+
+      const dadosReal = {
+          labels: [],
+          datasets: [{
+              label: "Atual",
+              borderColor: "blue",
+              data: [],
+              tension: 0.2
+          }]
+      };
+
+      const graficoReal = new Chart(
+          document.getElementById("reChart").getContext("2d"),
+          {type: "line", data: dadosReal}
+      );
+
+    async function atualizarGrafico() {
+        try {
+            const response = await fetch(API_REALTIME);
+            const data = await response.json();
+
+            if (!data.nivel) return;
+
+            const valor = parseFloat(parseFloat(data.nivel).toFixed(1));
+
+            dadosReal.labels.push(new Date().toLocaleTimeString());
+            dadosReal.datasets[0].data.push(valor);
+            graficoReal.update();
+
+            document.querySelector("#real strong").innerText = valor + " cm";
+
+        } catch (e) {
+            console.error("Erro ao obter dados:", e);
+        }
+    }
+
+    setInterval(atualizarGrafico, 10000);
+
+    const Hdata = {
+        labels: [],
+        datasets: [{
+            label: "Histórico",
+            borderColor: "green",
+            data: [],
+            tension: 0.2
+        }]
+    };
+
+    const HChart = new Chart(
+        document.getElementById("HChart").getContext("2d"),
+        {type: "line", data: Hdata}
+    );
+
+    async function carregarHistorico() {
+        const inicio = document.getElementById('dataInicio').value;
+        const fim = document.getElementById('dataFim').value;
+
+        if (!inicio || !fim || new Date(inicio) > new Date(fim)) {
+            alert("Por favor, insira datas válidas.");
+            return;
+        }
+
+        const requestData = {
+            collection_name: "real",
+            start_datetime: `${inicio}T00:00:00`,
+            end_datetime: `${fim}T23:59:59`
+        };
+
+        try {
+            const response = await fetch(API_HIST, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(requestData)
+            });
+
+            const historico = await response.json();
+
+            if (!historico.length) {
+                alert("Nenhum dado encontrado.");
+                return;
+            }
+
+            Hdata.labels = [];
+            Hdata.datasets[0].data = [];
+
+            historico.forEach(item => {
+                Hdata.labels.push(new Date(item.timestamp).toLocaleString());
+                Hdata.datasets[0].data.push(item.valor);
+            });
+
+            HChart.update();
+
+        } catch (e) {
+            console.error(e);
+            alert("Erro ao carregar histórico.");
+        }
+    }
+  </script>
+</body>
+</html>

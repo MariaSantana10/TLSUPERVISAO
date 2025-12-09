@@ -1,0 +1,17 @@
+# Use a imagem oficial do Python como base
+FROM python:3.8-slim-bullseye
+
+# Defina o diretorio de trabalho do contêiner
+WORKDIR /app
+
+# Copie o requeriments.txt para o diretorio de trabalho
+COPY requirements.txt .
+
+# Instale as dependencias do Python
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copie o restante do código da aplicação para o diretório de trabalho
+COPY . .
+
+# Execute o script python
+CMD [ "python", "consultaReal.py" ]

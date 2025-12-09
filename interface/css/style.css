@@ -1,0 +1,117 @@
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+}
+
+/* Títulos pequenos */
+.small-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+/* Cards dos Minhocários */
+.room-card {
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.room-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+
+/* Seção do gráfico */
+.water-section {
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Barra de progresso */
+.progress {
+  height: 28px;
+  border-radius: 8px;
+}
+
+.progress-bar {
+  font-weight: 600;
+}
+
+/* =====================================================
+   📱 AJUSTES DE RESPONSIVIDADE PARA CELULAR
+   ===================================================== */
+@media (max-width: 576px) {
+
+  /* Reduz título grande que quebra tela */
+  .display-4,
+  .display-5 {
+    font-size: 1.8rem !important;
+  }
+
+  /* Ajusta padding do banner azul do topo */
+  .hero-section,
+  .bg-primary.p-5 {
+    padding: 2rem !important;
+  }
+
+  /* Espaçamento entre cards */
+  .room-card {
+    margin-bottom: 1rem;
+  }
+
+  /* Centraliza textos pequenos no footer dos cards */
+  .card-footer small {
+    font-size: 0.75rem;
+  }
+
+  /* Botões menores no footer */
+  .card-footer .btn {
+    padding: 4px 6px;
+    font-size: 0.75rem;
+  }
+
+  /* Gráfico nunca estoura a tela */
+  canvas {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Ajusta breadcrumb */
+  .breadcrumb {
+    font-size: 0.85rem;
+  }
+}
+/* Cards menores */
+.room-card {
+  border-radius: 8px;
+  padding: 0.2rem !important;
+}
+
+.room-card .card-body {
+  padding: 0.75rem !important;
+}
+
+.room-card .card-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.room-card p {
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.room-card .card-footer {
+  padding: 0.4rem 0.75rem !important;
+}
+.card-title {
+  text-align: center;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+.card-title {
+  text-align: center;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}

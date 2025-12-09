@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gráficos da sala</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="bg-light">
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <div class="container">
+    <a class="navbar-brand" href="index.html">
+      <i class="fas fa-chart-line me-2"></i>
+      Sala <span id="nav-sala">?</span> — Monitoramento
+    </a>
+
+    <a href="index.html" class="btn btn-light btn-sm">
+      <i class="fas fa-arrow-left me-2"></i>Voltar
+    </a>
+  </div>
+</nav>
+
+<div class="container my-4">
+  <div class="bg-primary text-white rounded p-4 text-center">
+    <h1 class="display-6">
+      <i class="fas fa-chart-column me-2"></i>Gráficos da Sala <span id="titulosala">?</span>
+    </h1>
+    <p class="lead">Monitoramento completo da sala selecionada</p>
+  </div>
+</div>
+
+<!-- CARD RESUMIDO DA sala -->
+<div class="container mb-4">
+  <div class="card shadow-sm">
+    <div class="card-body">
+
+      <h4 class="mb-3">Sala <span id="cardsala">?</span> — Resumo</h4>
+
+      <div class="row">
+        <div class="col-md-3 text-center">
+          <p class="fw-bold">
+            <i class="fas fa-temperature-high me-1"></i> Temperatura
+          </p>
+          <p id="tempValor" class="fs-3 text-success">--</p>
+        </div>
+        <div class="col-md-3 text-center">
+          <p class="fw-bold">
+            <i class="fas fa-fan me-2"></i> Ar-condicionado
+          </p>
+          <p id="arValor" class="fs-3 text-success">--</p>
+        </div>
+        <div class="col-md-3 text-center">
+          <p class="fw-bold">
+            <i class="fas fa-lightbulb me-2"></i> Lampadas
+          </p>
+          <p id="lampValor" class="fs-3 text-success">--</p>
+        </div>
+        <div class="col-md-3 text-center">
+          <p class="fw-bold">
+            <i class="fas fa-clock me-1"></i> Última Atualização
+          </p>
+          <p id="ultimaLeitura" class="fs-5 text-muted">--</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GRÁFICOS -->
+<div class="container mb-5">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h4 class="mb-4">
+        <i class="fas fa-chart-line me-2"></i>Gráfico em Tempo Real e Histórico da Temperatura
+      </h4>
+      <div class="row gy-4">
+
+        <!-- GRAFICO TEMPO REAL -->
+        <div class="col-md-6 d-flex flex-column">
+          <h6 class="fw-bold mb-2">
+            <i class="fas fa-snowflake me-1"></i> Tempo real
+          </h6>
+          <div class="p-2 border rounded bg-white flex-grow-1 d-flex align-items-center">
+            <canvas id="graficoTemp" style="width: 100% !important; height: 300px !important;"></canvas>
+          </div>
+        </div>
+
+        <div class="col-md-6 d-flex flex-column">
+          <h6 class="fw-bold mb-2">
+            <i class="fas fa-history me-1"></i> Histórico
+          </h6>
+          <div class="p-2 border rounded bg-white flex-grow-1 d-flex align-items-center">
+            <canvas id="historicoTemp" style="width: 100% !important; height: 300px !important;"></canvas>
+          </div>
+          <div class="row g-3 mb-2">
+            <div class="col-4">
+              <label for="dataInicio" class="form-label">Início:</label>
+              <input type="date" id="dataInicio" class="form-control">
+            </div>
+            <div class="col-4">
+              <label for="dataFim" class="form-label">Fim:</label>
+              <input type="date" id="dataFim" class="form-control">
+            </div>
+            <div class="col-4">
+              <label class="form-label invisible">.</label>
+              <button onclick="HistoricoTemp()" class="btn btn-primary w-100">Carregar</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container mb-5">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h4 class="mb-4">
+        <i class="fas fa-chart-line me-2"></i>Gráficos em Tempo Real e Histórico do Ar-condicionado
+      </h4>
+      <div class="row gy-4">
+        <!-- GRÁFICO TEMPO REAL -->
+        <div class="col-md-6 d-flex flex-column">
+          <h6 class="fw-bold mb-2">
+            <i class="fas fa-snowflake me-1"></i> Tempo real
+          </h6>
+          <div class="p-2 border rounded bg-white flex-grow-1 d-flex align-items-center">
+            <canvas id="graficoAR" style="width: 100% !important; height: 300px !important;"></canvas>
+          </div>
+        </div>
+
+        <!-- GRÁFICO HISTÓRICO -->
+        <div class="col-md-6 d-flex flex-column">
+          <h6 class="fw-bold mb-2">
+            <i class="fas fa-history me-1"></i> Histórico
+          </h6>
+          <div class="p-2 border rounded bg-white flex-grow-1 d-flex align-items-center">
+            <canvas id="historicoAR" style="width: 100% !important; height: 300px !important;"></canvas>
+          </div>
+          <div class="row g-3 mb-2">
+            <div class="col-4">
+              <label for="dataInicio" class="form-label">Início:</label>
+              <input type="date" id="dataInicio" class="form-control">
+            </div>
+            <div class="col-4">
+              <label for="dataFim" class="form-label">Fim:</label>
+              <input type="date" id="dataFim" class="form-control">
+            </div>
+            <div class="col-4">
+              <label class="form-label invisible">.</label>
+              <button onclick="HistoricoAR()" class="btn btn-primary w-100">Carregar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container mb-5">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h4 class="mb-4">
+        <i class="fas fa-chart-line me-2"></i>Gráficos em Tempo Real e Histórico das Lâmpadas
+      </h4>
+      <div class="row gy-4">
+
+        <!-- GRÁFICO TEMPO REAL -->
+        <div class="col-md-6 d-flex flex-column">
+          <h6 class="fw-bold mb-2">
+            <i class="fas fa-bolt me-1"></i> Tempo real
+          </h6>
+          <div class="p-2 border rounded bg-white flex-grow-1 d-flex align-items-center">
+            <canvas id="graficoLamp" style="width: 100% !important; height: 300px !important;"></canvas>
+          </div>
+        </div>
+
+        <!-- GRÁFICO HISTÓRICO -->
+        <div class="col-md-6 d-flex flex-column">
+          <h6 class="fw-bold mb-2">
+            <i class="fas fa-history me-1"></i> Histórico
+          </h6>
+          <div class="p-2 border rounded bg-white flex-grow-1 d-flex align-items-center">
+            <canvas id="historicoLamp" style="width: 100% !important; height: 300px !important;"></canvas>
+          </div>
+          <div class="row g-3 mb-2">
+            <div class="col-4">
+              <label for="dataInicio" class="form-label">Início:</label>
+              <input type="date" id="dataInicio" class="form-control">
+            </div>
+            <div class="col-4">
+              <label for="dataFim" class="form-label">Fim:</label>
+              <input type="date" id="dataFim" class="form-control">
+            </div>
+            <div class="col-4">
+              <label class="form-label invisible">.</label>
+              <button onclick="HistoricoLuz()" class="btn btn-primary w-100">Carregar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  // CAPTURA DA sala SELECIONADA
+  const params = new URLSearchParams(window.location.search);
+  const sala = params.get("m") || "1";
+  
+  document.getElementById("nav-sala").textContent = 10+sala;
+  document.getElementById("titulosala").textContent = 10+sala;
+  document.getElementById("cardsala").textContent = 10+sala;
+
+  // MQTT — Tópicos por sala
+  const MQTT_BROKER = "ws://localhost:9002";
+  const TOPIC_TEMP = `sensor/temp/sala${sala}`;
+  const TOPIC_AR = `sensor/presenca/sala${sala}`;
+  const TOPIC_LUZ = `sensor/lampada/sala${sala}`;
+
+  console.log(TOPIC_AR);
+  console.log(TOPIC_TEMP);
+  console.log(TOPIC_LUZ);
+  const client = mqtt.connect(MQTT_BROKER);
+
+  let ultimaMensagem = null;
+
+  client.on("connect", () => {
+    client.subscribe([TOPIC_TEMP, TOPIC_AR, TOPIC_LUZ]);
+    console.log("MQTT conectado");
+  });
+
+  // TEMPO DE ÚLTIMA LEITURA
+  setInterval(() => {
+    if (!ultimaMensagem) return;
+
+    const agora = Date.now();
+    const diff = Math.floor((agora - ultimaMensagem) / 1000);
+
+    let texto =
+      diff < 60 ? `há ${diff} sec` :
+      diff < 3600 ? `há ${Math.floor(diff/60)} min` :
+      `há ${Math.floor(diff/3600)} h`;
+
+    document.getElementById("ultimaLeitura").textContent = texto;
+  }, 1000);
+
+  // DEFINIR COR DO STATUS
+  function atualizarStatus(temp, ar, luz) {
+    const badge = document.getElementById("statusCor");
+
+    if (!temp || !ar || !luz) return;
+
+    if (temp > 60) {
+      badge.textContent = "Crítico";
+      badge.className = "badge bg-danger p-2 fs-6";
+    }
+    else if (temp > 50) {
+      badge.textContent = "Atenção";
+      badge.className = "badge bg-warning text-dark p-2 fs-6";
+    }
+    else {
+      badge.textContent = "Normal";
+      badge.className = "badge bg-success p-2 fs-6";
+    }
+  }
+
+  // GRÁFICOS
+  const dadosTemp = {
+    labels: [],
+    datasets: [{
+      label: "Atual",
+      borderColor: "blue",
+      data: [],
+      tension: 0.2
+    }]
+  };
+
+  const dadosHtemp = {
+    labels: [],
+    datasets: [{
+      label: "Histórico",
+      borderColor: "blue",
+      data: [],
+      tension: 0.2
+    }]
+  };
+
+  const dadosAR = {
+    labels: [],
+    datasets: [{
+      label: "Atual",
+      borderColor: "green",
+      data: [],
+      tension: 0.2
+    }]
+  };
+
+  const dadosHar = {
+    labels: [],
+    datasets: [{
+      label: "Histórico",
+      borderColor: "green",
+      data: [],
+      tension: 0.2
+    }]
+  };
+
+  const dadosLuz = {
+    labels: [],
+    datasets: [{
+      label: "Atual",
+      borderColor: "red",
+      data: []
+    }]
+  };
+
+  const dadosHluz = {
+    labels: [],
+    datasets: [{
+      label: "Histórico",
+      borderColor: "red",
+      data: []
+    }]
+  };
+
+  const graficoTemp = new Chart(
+    document.getElementById("graficoTemp").getContext("2d"),
+    { type: "line", data: dadosTemp }
+  );
+
+  const graficoAR = new Chart(
+    document.getElementById("graficoAR").getContext("2d"),
+    { type: "line", data: dadosAR, options: {y: {min: -0.01, max: 1.01, ticks: {stepSize: 1}}} }
+  );
+
+  const graficoLamp = new Chart(
+    document.getElementById("graficoLamp").getContext("2d"),
+    { type: "line", data: dadosLuz, options: {y: {min: -0.01, max: 1.01, ticks: {stepSize: 1}}} }
+  );
+
+  const graficoHtemp = new Chart(
+    document.getElementById("historicoTemp").getContext("2d"),
+    { type: "line", data: dadosHtemp }
+  );
+
+  const graficoHar = new Chart(
+    document.getElementById("historicoAR").getContext("2d"),
+    { type: "line", data: dadosHar, options: {y: {min: -0.01, max: 1.01, ticks: {stepSize: 1}}} }
+  );
+
+  const graficoHlamp = new Chart(
+    document.getElementById("historicoLamp").getContext("2d"),
+    { type: "line", data: dadosHluz, options: {y: {min: -0.01, max: 1.01, ticks: {stepSize: 1}}} }
+  );
+
+  // GRAFICOS DOS HISTÓRICOS
+
+  async function HistoricoTemp() {
+    const inicio = document.getElementById('dataInicio').value;
+    const fim = document.getElementById('dataFim').value;
+    
+    if (!inicio || !fim || new Date(inicio) > new Date(fim)) { 
+      alert("Por favor, insira datas válidas."); return; }
+
+    const requestData = {collection_name: `temp${sala}`, sensor_id: 11, start_datetime: `${inicio}T07:00`, end_datetime: `${fim}T12:00` };
+
+    try {
+      const response = await fetch('http://localhost/api/historico', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json'},
+          body: JSON.stringify(requestData)
+      });
+      
+      if (!response.ok) throw new Error('Erro ao buscar os dados do histórico');
+
+      const histData = await response.json();
+
+      if (histData.length === 0) {
+        alert('Nenhum dado encontrado para o período selecionado.');
+        return;
+      }
+      dadosHtemp.labels = [];
+      dadosHtemp.datasets[0].data = [];
+
+      histData.forEach(item => {
+          const timestamp = new Date(item.timestamp).toLocaleString();
+          const valor = item.valor;
+          dadosHtemp.labels.push(timestamp);
+          dadosHtemp.datasets[0].data.push(valor);
+      });
+
+      graficoHtemp.update();
+
+    } catch (error) {
+        console.error(error);
+        alert('Erro ao carregar os dados do histórico.');
+    }
+  }
+
+  async function HistoricoAR() {
+    const inicio = document.getElementById('dataInicio').value;
+    const fim = document.getElementById('dataFim').value;
+    
+    if (!inicio || !fim || new Date(inicio) > new Date(fim)) { 
+      alert("Por favor, insira datas válidas."); return; }
+
+    const requestData = {collection_name: `ar${sala}`, sensor_id: 21, start_datetime: `${inicio}T07:00`, end_datetime: `${fim}T12:00` };
+
+    try {
+      const response = await fetch('http://localhost/api/historico', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json'},
+          body: JSON.stringify(requestData)
+      });
+      
+      if (!response.ok) throw new Error('Erro ao buscar os dados do histórico');
+
+      const histData = await response.json();
+
+      if (histData.length === 0) {
+        alert('Nenhum dado encontrado para o período selecionado.');
+        return;
+      }
+      dadosHar.labels = [];
+      dadosHar.datasets[0].data = [];
+
+      histData.forEach(item => {
+          const timestamp = new Date(item.timestamp).toLocaleString();
+          const valor = item.valor === true || item.valor === "true" ? 1 : 0;
+          dadosHar.labels.push(timestamp);
+          dadosHar.datasets[0].data.push(valor);
+      });
+
+      graficoHar.update();
+
+    } catch (error) {
+        console.error(error);
+        alert('Erro ao carregar os dados do histórico.');
+    }
+  }
+
+  async function HistoricoLuz() {
+    const inicio = document.getElementById('dataInicio').value;
+    const fim = document.getElementById('dataFim').value;
+    
+    if (!inicio || !fim || new Date(inicio) > new Date(fim)) { 
+      alert("Por favor, insira datas válidas."); return; }
+
+    const requestData = {collection_name: `luz${sala}`, sensor_id: 31, start_datetime: `${inicio}T07:00`, end_datetime: `${fim}T12:00` };
+
+    try {
+      const response = await fetch('http://localhost/api/historico', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json'},
+          body: JSON.stringify(requestData)
+      });
+      
+      if (!response.ok) throw new Error('Erro ao buscar os dados do histórico');
+
+      const histData = await response.json();
+
+      if (histData.length === 0) {
+        alert('Nenhum dado encontrado para o período selecionado.');
+        return;
+      }
+      dadosHluz.labels = [];
+      dadosHluz.datasets[0].data = [];
+
+      histData.forEach(item => {
+          const timestamp = new Date(item.timestamp).toLocaleString();
+          const valor = item.valor === true || item.valor === "true" ? 1 : 0;
+          dadosHluz.labels.push(timestamp);
+          dadosHluz.datasets[0].data.push(valor);
+      });
+
+      graficoHlamp.update();
+
+    } catch (error) {
+        console.error(error);
+        alert('Erro ao carregar os dados do histórico.');
+    }
+  }
+
+  // RECEBIMENTO MQTT
+  client.on("message", (topic, message) => {
+    const data = JSON.parse(message.toString());
+    const leitura = data.leitura;
+
+    ultimaMensagem = Date.now();
+
+    if (topic === TOPIC_TEMP) {
+      const valor = parseFloat(data.leitura.toFixed(1));
+      document.getElementById("tempValor").textContent = valor + "°C";
+
+      dadosTemp.labels.push(new Date().toLocaleTimeString());
+      dadosTemp.datasets[0].data.push(valor);
+      graficoTemp.update();
+    }
+
+    if (topic === TOPIC_AR) {
+      const estadoAr = leitura === true || leitura === "true";
+      const textoAr = estadoAr ? "Ligado" : "Desligado";
+      const valorAr = (leitura === true || leitura === "true") ? 1 : 0;
+      document.getElementById("arValor").textContent = textoAr;
+
+      dadosAR.labels.push(new Date().toLocaleTimeString());
+      dadosAR.datasets[0].data.push(valorAr);
+      graficoAR.update();
+    }
+
+    if (topic === TOPIC_LUZ){
+      const estadoLuz = leitura === true || leitura === "true";
+      const textoLuz = estadoLuz ? "Ligadas" : "Desligadas";
+      const valorLuz = (leitura === true || leitura === "true") ? 1 : 0;
+      document.getElementById("lampValor").textContent = textoLuz;
+
+      dadosLuz.labels.push(new Date().toLocaleTimeString());
+      dadosLuz.datasets[0].data.push(valorLuz);
+      graficoLamp.update();
+
+    }
+
+    // Atualiza status colorido
+    const t = parseFloat(document.getElementById("tempValor").textContent);
+    const a = parseFloat(document.getElementById("arValor").textContent);
+    const l = parseFloat(document.getElementById("lampValor").textContent);
+    atualizarStatus(t, a, l);
+  });
+
+</script>
+
+</body>
+</html>

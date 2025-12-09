@@ -1,0 +1,56 @@
+#version: '3.8'
+services:
+
+  mqtt-broker:
+    image: eclipse-mosquitto:2.0.18 
+    container_name: minhocao-broker
+    ports:
+      - "1884:1883" 
+      - "9002:9001"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+    command: mosquitto -c /mosquitto/config/mosquitto.conf 
+    restart: always
+
+  sensor_temperatura:
+    build: 
+      context: .
+      dockerfile: Dockerfile.servidor-temp
+    container_name: servidor-temp
+    depends_on:
+      - mqtt-broker
+    environment:
+        MQTT_BROKER_HOST: mqtt-broker 
+        MQTT_BROKER_PORT: 1883
+    command: python /app/servidor_temperatura.py
+    ports:
+      - "5001:5001"
+
+  sensor_luz:
+    build: 
+      context: .
+      dockerfile: Dockerfile.servidor-luz
+    container_name: servidor-luz
+    depends_on:
+      - mqtt-broker
+    environment:
+        MQTT_BROKER_HOST: mqtt-broker 
+        MQTT_BROKER_PORT: 1883
+    command: python /app/servidor_lampada.py
+    ports:
+      - "5003:5003"
+
+  sensor_ar:
+    build: 
+      context: .
+      dockerfile: Dockerfile.servidor-ar
+    container_name: servidor-ar
+    depends_on:
+      - mqtt-broker
+    environment:
+        MQTT_BROKER_HOST: mqtt-broker 
+        MQTT_BROKER_PORT: 1883
+    command: python /app/servidor_ar.py
+    ports:
+      - "5002:5002"
+      

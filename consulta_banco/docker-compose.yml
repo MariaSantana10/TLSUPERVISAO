@@ -1,0 +1,12 @@
+
+
+services:
+  servidor_data_collector:
+   build: .
+   container_name: consulta_banco
+   ports:
+    - "5005:5000"  # Mapeando a porta 5000 do container para a porta 5005 da máquina host
+   environment:
+    - MONGO_URI=mongodb://admin:admin@<mongo_container_host>:27017/
+    
+  
