@@ -6,7 +6,6 @@ const router = express.Router();
 
 const SECRET = "MINHA_CHAVE_SECRETA_123";
 
-// 🧍 Usuários de exemplo (depois pode estar no banco)
 const users = [
     { username: "admin", password: bcrypt.hashSync("123456", 10) },
     { username: "mvv", password: bcrypt.hashSync("senha2003", 10) },
@@ -41,3 +40,21 @@ function verificarToken(req, res, next) {
     });
 }
 module.exports = { router, verificarToken };
+
+router.post('/register', (req, res) => {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({ msg: "Usuário e senha são obrigatórios" });
+    }
+
+    const userExists = users.find(u => u.username === username);
+    if (userExists) {
+        return res.status(409).json({ msg: "Usuário já existe" });
+    }
+
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    users.push({ username, password: hashedPassword });
+
+    res.json({ msg: "Usuário cadastrado com sucesso!" });
+});
