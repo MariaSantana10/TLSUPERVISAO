@@ -9,7 +9,8 @@ const SECRET = "MINHA_CHAVE_SECRETA_123";
 // 🧍 Usuários de exemplo (depois pode estar no banco)
 const users = [
     { username: "admin", password: bcrypt.hashSync("123456", 10) },
-    { username: "mvv", password: bcrypt.hashSync("senha2003", 10) }
+    { username: "mvv", password: bcrypt.hashSync("senha2003", 10) },
+    { username: "flamengo", password: bcrypt.hashSync("fla1981")}
 ];
 
 // LOGIN

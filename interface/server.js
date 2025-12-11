@@ -1,15 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const { createProxyMiddleware } = require('http-proxy-middleware');
-const { router: authRoutes, verificarToken } = require('./auth');
+const { router: authRoutes } = require('./auth');
 
 const app = express();
 app.use(cors());
-app.use(express.json());
 app.use(express.static(__dirname));
-app.use('/auth', authRoutes);
-app.use("/api", verificarToken);
-
 
 const sensores = {
     temp: { inicio: 5101, qtd: 4 },
@@ -56,6 +52,9 @@ app.use('/api/sensor_real', createProxyMiddleware({
     changeOrigin: true,
     pathRewrite: { '^/api/sensor_real': '/dados' }
 }));
+
+app.use(express.json());  
+app.use('/auth', authRoutes);
 
 const PORT = 80;
 app.listen(PORT, () => {
